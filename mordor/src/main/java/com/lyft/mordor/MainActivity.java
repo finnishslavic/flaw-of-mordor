@@ -1,19 +1,33 @@
 package com.lyft.mordor;
 
-import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.support.v7.app.ActionBarActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import com.lyft.mordor.core.Main;
 
-public class MainActivity extends ActionBarActivity {
+import mortar.Mortar;
+import mortar.MortarActivityScope;
+import mortar.MortarContext;
+import mortar.MortarScope;
+
+
+public class MainActivity extends ActionBarActivity implements MortarContext {
+
+    private MortarActivityScope activityScope;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-    }
 
+        MortarScope parentScope = ((MordorApplication) getApplication()).getMortarScope();
+        activityScope = Mortar.requireActivityScope(parentScope, new Main());
+        Mortar.inject(this, this);
+
+        activityScope.onCreate(savedInstanceState);
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -35,4 +49,26 @@ public class MainActivity extends ActionBarActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        activityScope.onSaveInstanceState(outState);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (isFinishing()) {
+            activityScope.destroy();
+            activityScope = null;
+        }
+    }
+
+    @Override public MortarScope getMortarScope() {
+        return activityScope;
+    }
+
+    private MortarScope getParentScope() {
+        return Mortar.getScope(getApplicationContext());
+    }
 }
